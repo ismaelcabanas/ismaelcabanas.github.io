@@ -317,7 +317,7 @@ script:
 
 ***Nota***: *el punto que no me gusta en esta configuración es indicar en la ejecución de la imagen de Docker el puerto en concreto por el que se comunicará la máquina de Travis con el contenedor Docker. Ese puerto debe coincidir con el puerto en el que se ejecutan los e2e tests. Podría considerarse como una convención, pero seguro que hay alguna forma más elegante de realizar esta acción.*
 
-### Paso 9: Subirl la imagen Docker a DockerHub
+### Paso 9: Subir la imagen Docker a DockerHub
 
 Una vez hayan pasado los e2e tests sobre la imagen Docker de nuestra aplicación, es hora de subir esta imagen a un repositorio de imágenes Docker, como DockerHub.
 
@@ -346,6 +346,46 @@ after_success:
   - docker tag $DOCKER_IMAGE_NAME $DOCKER_IMAGE_NAME:$TAG
   - docker push $DOCKER_IMAGE_NAME
 ```
+
+### Paso 10: Desplegar la aplicación a Heroku
+
+El último paso del ciclo de vida de nuestra aplicación es desplegarla en algún lugar. En este caso vamos a desplegarla en Heroku. Travis CI da soporte para desplegar una aplicación web por medio de Heroku. Para ello debemos tener una cuenta creada en Heroku y disponer de la HEROKU_API_KEY.
+
+Lo primero que debemos hacer es encriptar HEROKU_API_KEY e incluirla en el fichero .travis.yml.
+
+> travis encrypt HEROKU_API_KEY=”the-heroku-api-key”
+
+Incluimos el valor generado en el fichero .travis.yml
+
+```
+env:
+  global:
+    - secure: "your encrypted heroku-api-key"
+    .....
+```
+
+También incluimos la configuración de despliegue en la sección **deploy** del .travis.yml
+
+```
+deploy:
+  skip_cleanup: true
+  provider: heroku
+  api_key: $HEROKU_API_KEY
+  app: <your-app-name>
+```
+
+Además, hay que crear en la raíz del proyecto el fichero **Procfile**, donde se indican comandos que se ejecutan en el Heroku dynno de la aplicación. Para más información sobre este fichero consultar [https://devcenter.heroku.com/articles/procfile](https://devcenter.heroku.com/articles/procfile).
+
+El contenido de este fichero es
+
+```
+web: java -Dserver.port=$PORT $JAVA_OPTS -jar <path-to-jar-file>
+```
+
+En *<path-to-jar-file>* se indicaría la ruta donde se encuentra el jar ejecutable de la aplicación, que en una aplicación SpringBoot suele generarse en build/libs.
+
+*$PORT* viene definido por una variable de entorno configurada en Heroku. Esta variable la configuraremos con el valor que hayamos indicado en nuestra propiedad **server.port**. Para obtener más información sobre este asunto se puede consultar [https://devcenter.heroku.com/articles/config-vars](https://devcenter.heroku.com/articles/config-vars).
+
 
 ## Enlaces de interés
 
